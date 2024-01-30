@@ -53,7 +53,7 @@ app.post("/register", async (req, res) => {
 
     res.json(userDoc); // Send a JSON response (replace {} with your response data if needed)
   } catch (err) {
-    res.status(422).json(e);
+    res.status(422).json(err);
   }
 });
 app.get("/test", (req, res) => {
@@ -113,10 +113,11 @@ app.get("/test", async (req, res) => {
 
 app.get("/profile", (req, res) => {
   const { token } = req.cookies;
+  console.log(token)
   if (token) {
     jwt.verify(token, jwtSecret, {}, async (err, userData) => {
       if (err) throw err;
-      const { role, name, email, _id } = await User.findOne(userData._id);
+      const { role, name, email, _id } = await User.findById(userData.id);
       res.json({ role, name, email, _id });
     });
   } else {
@@ -131,9 +132,7 @@ app.post("/logout", (req, res) => {
 app.post("/addservice",(req,res)=>{
   const { token } = req.cookies;
   console.log(req.body)
-  const {city,centerName}=req.body.formData;
-  const {servicesList}=req.body;
-  console.log(servicesList)
+  const {city,centerName,servicesList}=req.body;
   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
     console.log(userData)
     if (err) throw err;
@@ -146,7 +145,7 @@ res.json(serviceDoc)
 
 })
 
-app.get('/allservices',(req,res)=>{
+app.get('/allservicesofowner',(req,res)=>{
   const { token } = req.cookies;
   jwt.verify(token, jwtSecret, {}, async (err, userData) => {
     const {id}=userData;
@@ -154,6 +153,30 @@ app.get('/allservices',(req,res)=>{
   })
 
 
+})
+
+app.get('/services/:id',async(req,res)=>{
+  const {id}=req.params;
+  res.json(await Service.findById(id));
+})
+
+app.put('/editservice', async(req,res)=>{
+  const { token } = req.cookies;
+  const {id,city,centerName,servicesList}=req.body;
+  jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+    const serviceDoc=await Service.findById(id);
+    if(userData.id=== serviceDoc.owner.toString()){
+      serviceDoc.set({
+        city,center:centerName,services:servicesList
+      })
+     await serviceDoc.save();
+      res.json('ok')
+    }
+  })
+})
+
+app.get("/allservicesforall",async(req,res)=>{
+res.json(await Service.find());
 })
 
 app.listen(1337, () => {
