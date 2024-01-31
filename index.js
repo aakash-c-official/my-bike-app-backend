@@ -3,7 +3,8 @@ const app = express();
 const cors = require("cors"); //needed for local server and cliet error ie solve cors error
 const mongoose = require("mongoose"); //to connect to mongoose in advance
 const User = require("./models/user.model");
-const Service= require("./models/service")
+const Service= require("./models/service");
+const Booking= require("./models/Booking");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
@@ -78,10 +79,10 @@ app.post("/login", async (req, res) => {
         }
       );
     } else {
-      res.status(422).json("pass not ok");
+      res.status(422).json("password not ok");
     }
   } else {
-    res.json("not found ");
+    res.status(422).json('wrong credentials');
   }
   // res.json();
 });
@@ -113,7 +114,7 @@ app.get("/test", async (req, res) => {
 
 app.get("/profile", (req, res) => {
   const { token } = req.cookies;
-  console.log(token)
+  
   if (token) {
     jwt.verify(token, jwtSecret, {}, async (err, userData) => {
       if (err) throw err;
@@ -177,6 +178,32 @@ app.put('/editservice', async(req,res)=>{
 
 app.get("/allservicesforall",async(req,res)=>{
 res.json(await Service.find());
+})
+
+app.post("/booking",async(req,res)=>{
+  const userData=await getUserDataFromReq(req)
+  const {selectedCity,selectedCenter,selectedSlot,selectedService,name,serviceCenterId}=req.body;
+  console.log(selectedCity,selectedCenter,selectedSlot,selectedService);
+  Booking.create({city:selectedCity,center:selectedCenter,slot:selectedSlot,services:selectedService,name,owner:serviceCenterId,user:userData.id}).then((doc)=>{
+    res.json(doc);
+  }).catch((err)=>{
+    throw err;
+  })
+})
+
+function getUserDataFromReq(req){
+  return new Promise((resolve,reject)=>{
+    jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) => {
+      if(err) throw err;
+      resolve(userData);
+    })
+
+  })
+}
+app.get('/allbookings',async(req,res)=>{
+const userData=await getUserDataFromReq(req);
+res.json(await Booking.find({user:userData.id}))
+
 })
 
 app.listen(1337, () => {
